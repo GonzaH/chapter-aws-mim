@@ -5,6 +5,9 @@
 
 # Sections:
 
-## Base setup
+## 1. Base setup
 - Add env
 - Add base provider info in serverless.yml
+
+## 2. S3 setup
+- Add s3 info to serverless.yml

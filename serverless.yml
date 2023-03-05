@@ -8,20 +8,25 @@ provider:
   region: ${env:REGION}
   profile: ${env:PROFILE}
   tags:
-    created-at: 2022-10-18
+    created-at: 2023-03-05
 
   iam:
     role:
       statements:
         - Effect: Allow
-          Action: "s3:*"
-          Resource:
+          Action:
+            - "s3:GetObject"
+            - "s3:GetObjectAttributes"
+            - "s3:GetObjectAttributes"
+            - "s3:DeleteObject"
+            - "s3:PutObject"
+          Resource: "*"
 
   # Optional
   memorySize: 128
 
   # Deploy config
-  deploymentPrefix: chapter-aws-mim
+  deploymentPrefix: chapter-aws-mim-deploy
   deploymentBucket:
     blockPublicAccess: true
 
@@ -30,5 +35,9 @@ package:
     - node_modules/**
     - venv/**
 
-
-
+resources:
+  Resources:
+    chapterInfoBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: chapters-info-${env:STAGE}
