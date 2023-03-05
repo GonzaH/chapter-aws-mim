@@ -1,0 +1,34 @@
+service: chapter-aws-mim
+
+useDotenv: true
+
+provider:
+  # Provider info
+  name: aws
+  region: ${env:REGION}
+  profile: ${env:PROFILE}
+  tags:
+    created-at: 2022-10-18
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: "s3:*"
+          Resource:
+
+  # Optional
+  memorySize: 128
+
+  # Deploy config
+  deploymentPrefix: chapter-aws-mim
+  deploymentBucket:
+    blockPublicAccess: true
+
+package:
+  exclude:
+    - node_modules/**
+    - venv/**
+
+
+

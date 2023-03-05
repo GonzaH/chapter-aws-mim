@@ -1,0 +1,7 @@
+.serverless
+aws/*
+awscliv2.zip
+creds
+node_modules
+package-lock.json
+.env
