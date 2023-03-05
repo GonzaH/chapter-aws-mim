@@ -15,11 +15,11 @@ provider:
       statements:
         - Effect: Allow
           Action:
-            - "s3:GetObject"
+            # - "s3:GetObject"
             - "s3:GetObjectAttributes"
-            - "s3:GetObjectAttributes"
-            - "s3:DeleteObject"
-            - "s3:PutObject"
+            # - "s3:GetObjectAttributes"
+            # - "s3:DeleteObject"
+            # - "s3:PutObject"
           Resource: "*"
 
   # Optional
@@ -41,3 +41,37 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: chapters-info-${env:STAGE}
+
+functions:
+  postSeries:
+    name: postSeries-${env:STAGE}
+    handler: functions/chaptersService.addNewSeries
+    runtime: nodejs16.x
+    timeout: 10
+    description: A function that injects the new series into the db-like json
+    events:
+      - httpApi: "POST /series"
+    environment:
+      STAGE: ${env:STAGE}
+
+  getSeries:
+    name: getSeries-${env:STAGE}
+    handler: functions/chaptersService.getChaptersInfo
+    runtime: nodejs16.x
+    timeout: 10
+    description: A function that gets the db-like json
+    events:
+      - httpApi: "GET /series"
+    environment:
+      STAGE: ${env:STAGE}
+
+  updateSeries:
+    name: updateSeries-${env:STAGE}
+    handler: functions/chaptersService.updateChapterInfo
+    runtime: nodejs16.x
+    timeout: 10
+    description: A function that updates the a series in the db-like json
+    events:
+      - httpApi: "PATCH /series"
+    environment:
+      STAGE: ${env:STAGE}
