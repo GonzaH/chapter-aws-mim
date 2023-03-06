@@ -19,3 +19,7 @@
   - getting
   - updating
 - Create lambdas with API gateway triggers
+
+## 4. SNS
+- Create a topic
+- Notify via email to al subscribed users

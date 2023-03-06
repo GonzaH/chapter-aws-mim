@@ -9,6 +9,8 @@ provider:
   profile: ${env:PROFILE}
   tags:
     created-at: 2023-03-05
+  environment:
+    NEW_SERIES_SNS_ARN: "arn:aws:sns:${env:REGION}:${env:ACCOUNT_NUMBER}:NewSeriesNotification-${env:STAGE}"
 
   iam:
     role:
@@ -20,6 +22,12 @@ provider:
             - "s3:GetObjectAttributes"
             - "s3:DeleteObject"
             - "s3:PutObject"
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - "sns:Publish"
+            - "sns:Subscribe"
+            - "sns:Unsubscribe"
           Resource: "*"
 
   # Optional
@@ -41,6 +49,10 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: chapters-info-${env:STAGE}
+    newSeriesNotification:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: NewSeriesNotification-${env:STAGE}
 
 functions:
   postSeries:

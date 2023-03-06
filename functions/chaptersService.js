@@ -2,6 +2,7 @@ const {
   getAllChapterInfo,
   updateChapters,
 } = require("../services/chapterS3Service");
+const { notifyNewSeries } = require("../services/notificationSNSService");
 
 const isInvalidNumber = (toValidate, min) =>
   Number.isNaN(toValidate) || toValidate < min;
@@ -30,6 +31,8 @@ const addNewSeries = async ({ body }) => {
   };
 
   await updateChapters(updatedChapterInfo);
+
+  await notifyNewSeries(title);
 };
 
 const getChaptersInfo = async () => {
