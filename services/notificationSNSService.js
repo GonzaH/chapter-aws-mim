@@ -9,7 +9,7 @@ const notifyNewSeries = (seriesName) => {
     .publish({
       Subject: "New Series",
       Message: notificationText,
-      TargetArn: NEW_SERIES_SNS_ARN,
+      TargetArn: process.env.NEW_SERIES_SNS_ARN,
     })
     .promise();
 };

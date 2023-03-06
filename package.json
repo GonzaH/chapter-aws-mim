@@ -1,6 +1,6 @@
 {
   "name": "Chapter AWS mim",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A chapter tracker but in aws in order to teach a little bit of this cursed technology",
   "scripts": {
     "deploy": "sls deploy",
