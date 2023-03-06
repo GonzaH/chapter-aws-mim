@@ -1,6 +1,7 @@
 const {
   getAllChapterInfo,
   updateChapters,
+  getNewSeriesInfo,
 } = require("../services/chapterS3Service");
 const { notifyNewSeries } = require("../services/notificationSNSService");
 
@@ -13,9 +14,39 @@ const getBody = (body) => {
   return JSON.parse(body);
 };
 
-const addNewSeries = async ({ body }) => {
-  const { title, season = 1, chapter = 0 } = getBody(body);
+const parseEvent = async (event) => {
+  if (event.body) {
+    const { title, season = 1, chapter = 0 } = getBody(event.body);
 
+    return [{ title, season, chapter }];
+  }
+
+  const { Records } = event;
+  const s3Keys = Records.map(
+    ({
+      s3: {
+        object: { key },
+      },
+    }) => key
+  );
+
+  const fileContents = await Promise.allSettled(
+    s3Keys.map(async (s3Key) => {
+      const { title, season = 1, chapter = 0 } = await getNewSeriesInfo(s3Key);
+
+      return { title, season, chapter };
+    })
+  );
+
+  const readFileContents = fileContents.reduce(
+    (accum, { value }) => (value ? accum.concat(value) : accum),
+    []
+  );
+
+  return readFileContents;
+};
+
+const handleSeriesCreation = async ({ title, season, chapter }) => {
   if (!title) throw new Error("Title is mandatory");
 
   if (isInvalidNumber(Number(season), 1) || isInvalidNumber(Number(chapter), 0))
@@ -32,7 +63,22 @@ const addNewSeries = async ({ body }) => {
 
   await updateChapters(updatedChapterInfo);
 
-  await notifyNewSeries(title);
+  return title;
+};
+
+const addNewSeries = async (event) => {
+  const chapterInfoList = await parseEvent(event);
+
+  const creations = await Promise.allSettled(
+    chapterInfoList.map(handleSeriesCreation)
+  );
+
+  const titles = creations.reduce(
+    (accum, { value }) => (value ? accum.concat(value) : accum),
+    []
+  );
+
+  if (titles.length) await notifyNewSeries(titles);
 };
 
 const getChaptersInfo = async () => {
@@ -50,7 +96,7 @@ const getChaptersInfo = async () => {
 };
 
 const updateChapterInfo = async ({ body }) => {
-  const { title, season = 1, chapter = 0 } = getBody(body);
+  const { title, season = 1, chapter = 0 } = await getBody(body);
 
   if (!title) throw new Error("Title is mandatory");
 

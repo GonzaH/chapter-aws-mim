@@ -23,3 +23,7 @@
 ## 4. SNS
 - Create a topic
 - Notify via email to al subscribed users
+
+## 5. S3 Trigger
+- Add a trigger to detect new files
+- Use same function as http to handle new series

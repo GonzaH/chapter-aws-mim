@@ -5,3 +5,4 @@ creds
 node_modules
 package-lock.json
 .env
+meme*.json

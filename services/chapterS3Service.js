@@ -14,16 +14,25 @@ const getObject = (objectKey) => {
     .promise();
 };
 
+const getFileContent = (rawFileContent) =>
+  rawFileContent ? JSON.parse(rawFileContent.Body.toString("utf-8")) : {};
+
 const getAllChapterInfo = async () => {
   try {
     const allInfo = await getObject(ALL_CHAPTER_OBJECT_INFO);
 
-    return allInfo ? JSON.parse(allInfo.Body.toString("utf-8")) : {};
+    return getFileContent(allInfo);
   } catch (error) {
     if (error.message.includes("The specified key does not exist")) return {};
 
     throw error;
   }
+};
+
+const getNewSeriesInfo = async (key) => {
+  const newSeriesInfo = await getObject(key);
+
+  return getFileContent(newSeriesInfo);
 };
 
 const putObject = (key, fileContent) => {
@@ -41,4 +50,4 @@ const putObject = (key, fileContent) => {
 const updateChapters = (fileContent) =>
   putObject(ALL_CHAPTER_OBJECT_INFO, fileContent);
 
-module.exports = { getAllChapterInfo, updateChapters };
+module.exports = { getAllChapterInfo, updateChapters, getNewSeriesInfo };

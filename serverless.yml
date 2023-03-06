@@ -63,6 +63,14 @@ functions:
     description: A function that injects the new series into the db-like json
     events:
       - httpApi: "POST /series"
+      - s3:
+          bucket: chapters-info-${env:STAGE}
+          event: s3:ObjectCreated:*
+          events: s3:ObjectCreated:*
+          rules:
+            - prefix: series/
+            - suffix: .json
+          existing: true
     environment:
       STAGE: ${env:STAGE}
 

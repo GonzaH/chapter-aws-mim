@@ -1,7 +1,9 @@
 const aws = require("aws-sdk");
 
 const notifyNewSeries = (seriesName) => {
-  const notificationText = `Oh wow, ${seriesName} is now part of the series list`;
+  const notificationText = `Oh wow, ${seriesName.join(", ")} ${
+    seriesName.length > 1 ? "are" : "is"
+  } now part of the series list`;
 
   const sns = new aws.SNS();
 
