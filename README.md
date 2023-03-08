@@ -27,3 +27,7 @@
 ## 5. S3 Trigger
 - Add a trigger to detect new files
 - Use same function as http to handle new series
+
+## 6. StepFunction
+- Create lambdas in python to handle broken files
+- Create a step function with waits and decitions to show base procedure

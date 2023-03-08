@@ -22,12 +22,20 @@ provider:
             - "s3:GetObjectAttributes"
             - "s3:DeleteObject"
             - "s3:PutObject"
+            - "s3:ListObjectsV2"
+            - "s3:ListBuckets"
+            - "s3:ListBucket"
           Resource: "*"
         - Effect: Allow
           Action:
             - "sns:Publish"
             - "sns:Subscribe"
             - "sns:Unsubscribe"
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - "lambda:InvokeFunction"
+            - "lambda:InvokeAsync"
           Resource: "*"
 
   # Optional
@@ -95,3 +103,90 @@ functions:
       - httpApi: "PATCH /series"
     environment:
       STAGE: ${env:STAGE}
+
+  getAllFilesSeriesInfo:
+    name: getAllFilesSeriesInfo-${env:STAGE}
+    handler: functions/getAllSeriesNames.handler
+    runtime: python3.8
+    timeout: 10
+    environment:
+      STAGE: ${env:STAGE}
+
+  getFixedFileContent:
+    name: getFixedFileContent-${env:STAGE}
+    handler: functions/getFixedFileContent.handler
+    runtime: python3.8
+    timeout: 10
+    environment:
+      STAGE: ${env:STAGE}
+
+  getFailedInfoToUpload:
+    name: getFailedInfoToUpload-${env:STAGE}
+    handler: functions/getFailedInfoToUpload.handler
+    runtime: python3.8
+    timeout: 10
+    environment:
+      STAGE: ${env:STAGE}
+
+  uploadBatchSeries:
+    name: uploadBatchSeries-${env:STAGE}
+    handler: functions/uploadBatchSeries.handler
+    runtime: python3.8
+    timeout: 10
+    environment:
+      STAGE: ${env:STAGE}
+
+stepFunctions:
+  stateMachines:
+    getBrokenSeries:
+      name: getBrokenSeries-${env:STAGE}
+      definition:
+        StartAt: GetAll
+        States:
+          GetAll:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [getAllFilesSeriesInfo, Arn]
+            Next: CompareAndFix
+          CompareAndFix:
+            Type: Map
+            ItemsPath: $.object_list
+            ResultPath: $.valid_file_content
+            MaxConcurrency: 10
+            Iterator:
+              StartAt: FixContent
+              States:
+                FixContent:
+                  Type: Task
+                  Resource:
+                    Fn::GetAtt: [getFixedFileContent, Arn]
+                  End: true
+            Next: CatchBreathAfterMap
+          CatchBreathAfterMap:
+            Type: Wait
+            Seconds: 5
+            Next: GetMissingInfo
+          GetMissingInfo:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [getFailedInfoToUpload, Arn]
+            Next: NotifyErrors
+          NotifyErrors:
+            Type: Choice
+            Choices:
+              - Variable: $.to_insert_len
+                NumericGreaterThanEquals: 0
+                Next: UploadMissingSeries
+            Default: FinalRest
+          UploadMissingSeries:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [uploadBatchSeries, Arn]
+            Next: FinalRest
+          FinalRest:
+            Type: Wait
+            Seconds: 1
+            End: true
+
+plugins:
+  - serverless-step-functions
