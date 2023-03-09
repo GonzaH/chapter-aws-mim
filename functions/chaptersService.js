@@ -4,6 +4,7 @@ const {
   getNewSeriesInfo,
 } = require("../services/chapterS3Service");
 const { notifyNewSeries } = require("../services/notificationSNSService");
+const { deleteSQSMessage } = require("../services/sqsService");
 
 const isInvalidNumber = (toValidate, min) =>
   Number.isNaN(toValidate) || toValidate < min;
@@ -14,14 +15,7 @@ const getBody = (body) => {
   return JSON.parse(body);
 };
 
-const parseEvent = async (event) => {
-  if (event.body) {
-    const { title, season = 1, chapter = 0 } = getBody(event.body);
-
-    return [{ title, season, chapter }];
-  }
-
-  const { Records } = event;
+const handleS3Event = async () => {
   const s3Keys = Records.map(
     ({
       s3: {
@@ -46,7 +40,36 @@ const parseEvent = async (event) => {
   return readFileContents;
 };
 
-const handleSeriesCreation = async ({ title, season, chapter }) => {
+const parseEvent = async (event) => {
+  if (event.body) {
+    const { title, season = 1, chapter = 0 } = getBody(event.body);
+
+    return [{ title, season, chapter }];
+  }
+
+  const { Records } = event;
+  const isS3Event = Records.some(({ s3 }) => !!s3);
+
+  if (isS3Event) return handleS3Event(Records);
+
+  return Records.reduce((accum, { receiptHandle, body }) => {
+    const parsedBody = JSON.parse(body);
+
+    const populatedBody = parsedBody.map((bodyInfo) => ({
+      ...bodyInfo,
+      receiptHandle,
+    }));
+
+    return accum.concat(populatedBody);
+  }, []);
+};
+
+const handleSeriesCreation = async ({
+  title,
+  season,
+  chapter,
+  receiptHandle,
+}) => {
   if (!title) throw new Error("Title is mandatory");
 
   if (isInvalidNumber(Number(season), 1) || isInvalidNumber(Number(chapter), 0))
@@ -63,7 +86,7 @@ const handleSeriesCreation = async ({ title, season, chapter }) => {
 
   await updateChapters(updatedChapterInfo);
 
-  return title;
+  return { title, receiptHandle };
 };
 
 const addNewSeries = async (event) => {
@@ -73,12 +96,21 @@ const addNewSeries = async (event) => {
     chapterInfoList.map(handleSeriesCreation)
   );
 
-  const titles = creations.reduce(
-    (accum, { value }) => (value ? accum.concat(value) : accum),
-    []
+  const { titles, receiptHandle } = creations.reduce(
+    ({ titles, receiptHandle }, { value }) =>
+      value
+        ? {
+            titles: titles.concat(value.titles),
+            receiptHandle: value.messageId
+              ? receiptHandle.concat(messageId)
+              : receiptHandle,
+          }
+        : { titles, receiptHandle },
+    { titles: [], receiptHandle: [] }
   );
 
   if (titles.length) await notifyNewSeries(titles);
+  if (receiptHandle.length) await deleteSQSMessage(receiptHandle);
 };
 
 const getChaptersInfo = async () => {

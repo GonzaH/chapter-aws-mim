@@ -40,7 +40,7 @@ def handler(event, context):
     if not real_title: return None
 
     chapter = file_info.get('chapter', 0)
-    season = file_info.get('season', 0)
+    season = file_info.get('season', 1)
 
     return { 'title': real_title, 'chapter': chapter, 'season': season }
   except Exception as ex:

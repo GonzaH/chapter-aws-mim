@@ -37,6 +37,14 @@ provider:
             - "lambda:InvokeFunction"
             - "lambda:InvokeAsync"
           Resource: "*"
+        - Effect: Allow
+          Action:
+            - "states:StartExecution"
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - "sqs:*"
+          Resource: "*"
 
   # Optional
   memorySize: 128
@@ -61,6 +69,10 @@ resources:
       Type: AWS::SNS::Topic
       Properties:
         TopicName: NewSeriesNotification-${env:STAGE}
+    createSeriesQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: createSeriesQueue-${env:STAGE}
 
 functions:
   postSeries:
@@ -79,6 +91,10 @@ functions:
             - prefix: series/
             - suffix: .json
           existing: true
+      - sqs:
+          arn:
+            Fn::GetAtt: [createSeriesQueue, Arn]   
+          batchSize: 1
     environment:
       STAGE: ${env:STAGE}
 
@@ -133,6 +149,21 @@ functions:
     handler: functions/uploadBatchSeries.handler
     runtime: python3.8
     timeout: 10
+    environment:
+      STAGE: ${env:STAGE}
+
+  brokenSeriesTrigger:
+    name: brokenSeriesTrigger-${env:STAGE}
+    handler: functions/brokenSeriesTrigger.handler
+    runtime: python3.8
+    timeout: 10
+    events:
+      - schedule:
+          rate: rate(30 minutes)
+          enabled: false
+      - schedule:
+          rate: cron(30 * * * ? *)
+          enabled: false
     environment:
       STAGE: ${env:STAGE}
 

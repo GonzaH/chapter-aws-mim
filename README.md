@@ -31,3 +31,8 @@
 ## 6. StepFunction
 - Create lambdas in python to handle broken files
 - Create a step function with waits and decitions to show base procedure
+
+## 7. Crons n SQS
+- Add a function that triggers the SF
+- Add crons expressions to call that as cron and rate
+- Replace lambda invoke with a SQS
